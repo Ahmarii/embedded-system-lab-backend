@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "embedded-lab-project",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

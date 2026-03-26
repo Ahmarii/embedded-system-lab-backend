@@ -1,0 +1,22 @@
+meta {
+  name: CreateUser
+  type: http
+  seq: 1
+}
+
+post {
+  url: 127.0.0.1:3000/users
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "rfid": "new-rfid"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

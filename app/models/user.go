@@ -2,6 +2,7 @@ package models
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,4 +31,8 @@ func HashRFID(rfid string) []byte {
 	h := sha256.New()
 	h.Write([]byte(rfid))
 	return h.Sum(nil)
+}
+
+func HashRFIDHex(rfid string) string {
+	return hex.EncodeToString(HashRFID(rfid))
 }

@@ -1,0 +1,16 @@
+meta {
+  name: GetAllUsers
+  type: http
+  seq: 2
+}
+
+get {
+  url: 127.0.0.1:3000/users
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
