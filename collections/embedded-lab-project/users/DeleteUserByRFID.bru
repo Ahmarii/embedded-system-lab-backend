@@ -1,0 +1,16 @@
+meta {
+  name: DeleteUserByRFID
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{BASE_URL}}:{{PORT}}/users/new-rfid
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
