@@ -31,13 +31,18 @@ func (r *TransactionRepository) Create(user *models.User, transactionType string
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	transactionAmount, exists := models.TypeAmounts[transactionType]
+	if !exists {
+		return nil, errors.New("invalid transaction type")
+	}
+
+	if user.Amount < transactionAmount {
+		return nil, ErrInsufficientBalance
+	}
+
 	transaction, err := models.NewTransaction(user.UUID, user.RFID_Hashed, transactionType, user.Amount)
 	if err != nil {
 		return nil, err
-	}
-
-	if user.Amount < transaction.Amount {
-		return nil, ErrInsufficientBalance
 	}
 
 	transaction.RemainingBalance = user.Amount - transaction.Amount

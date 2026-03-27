@@ -10,7 +10,7 @@ import (
 var TypeAmounts = map[string]float64{
 	"A": 10.0,
 	"B": 20.0,
-	"C": 20.0,
+	"C": 30.0,
 }
 
 type Transaction struct {
