@@ -1,0 +1,23 @@
+meta {
+  name: CreateTransaction
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BASE_URL}}:{{PORT}}/transactions
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "user_id": "8cd6e867-7d9a-4c2f-86e8-c20f655ddc7a",
+    "type": "A"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

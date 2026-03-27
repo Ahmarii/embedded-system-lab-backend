@@ -43,6 +43,7 @@ services:
       MONGO_URI: mongodb://admin:admin@mongodb:27017
       MONGO_DATABASE: embedded_lab
       MONGO_USER_COLLECTION: users
+      MONGO_TRANSACTION_COLLECTION: transactions
       MQTT_BROKER_URL: tcp://mosquitto:1883
       MQTT_TOPIC: esp32/temperature
       INFLUXDB_URL: http://influxdb:8086

@@ -18,7 +18,7 @@ import (
 )
 
 func main() {
-	mongoClient, userCollection, err := database.ConnectMongo()
+	mongoClient, userCollection, transactionCollection, err := database.ConnectMongo()
 	if err != nil {
 		log.Fatalf("failed to connect mongo: %v", err)
 	}
@@ -36,9 +36,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to setup user repository: %v", err)
 	}
+	transactionRepository, err := repositories.NewTransactionRepository(transactionCollection)
+	if err != nil {
+		log.Fatalf("failed to setup transaction repository: %v", err)
+	}
 	userHandler := handlers.NewUserHandler(userRepository)
+	transactionHandler := handlers.NewTransactionHandler(transactionRepository, userRepository)
 
 	routes.RegisterUserRoutes(app, userHandler)
+	routes.RegisterTransactionRoutes(app, transactionHandler)
 
 	influxWriter, err := timeseries.NewInfluxWriter()
 	if err != nil {

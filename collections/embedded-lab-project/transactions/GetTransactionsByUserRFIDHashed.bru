@@ -1,0 +1,16 @@
+meta {
+  name: GetTransactionsByUserRFIDHashed
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{BASE_URL}}:{{PORT}}/transactions/user-rfid-hashed/e8eb2684fcf9b65f510429341f52866bf53d45770a6b8a3756925e9f9073e533
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

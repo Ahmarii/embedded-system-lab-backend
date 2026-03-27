@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/KaningNoppasin/embedded-system-lab-backend/app/models"
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -67,6 +68,26 @@ func (r *UserRepository) GetByRFID(rfid string) (*models.User, error) {
 	return &user, nil
 }
 
+func (r *UserRepository) GetByID(userID uuid.UUID) (*models.User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var user models.User
+	err := r.collection.FindOne(ctx, bson.M{
+		"_id":        userID,
+		"is_deleted": false,
+	}).Decode(&user)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, ErrUserNotFound
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 func (r *UserRepository) GetAll() ([]models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -96,6 +117,36 @@ func (r *UserRepository) UpdateAmountByRFID(rfid string, amount float64) (*model
 		bson.M{
 			"rfid_hashed": models.HashRFID(rfid),
 			"is_deleted":  false,
+		},
+		bson.M{
+			"$set": bson.M{
+				"amount": amount,
+			},
+		},
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	)
+
+	var user models.User
+	if err := result.Decode(&user); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrUserNotFound
+		}
+
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (r *UserRepository) UpdateAmountByID(userID uuid.UUID, amount float64) (*models.User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result := r.collection.FindOneAndUpdate(
+		ctx,
+		bson.M{
+			"_id":        userID,
+			"is_deleted": false,
 		},
 		bson.M{
 			"$set": bson.M{

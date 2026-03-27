@@ -36,3 +36,7 @@ func HashRFID(rfid string) []byte {
 func HashRFIDHex(rfid string) string {
 	return hex.EncodeToString(HashRFID(rfid))
 }
+
+func HashRFIDHexFromBytes(rfidHashed []byte) string {
+	return hex.EncodeToString(rfidHashed)
+}
