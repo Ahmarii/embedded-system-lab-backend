@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/KaningNoppasin/embedded-system-lab-backend/app/mqtt"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
 )
@@ -52,6 +53,25 @@ func (w *InfluxWriter) StoreTemperature(topic string, value float64) error {
 		"temperature",
 		map[string]string{"topic": topic},
 		map[string]interface{}{"value": value},
+		time.Now(),
+	)
+
+	return w.writeAPI.WritePoint(ctx, point)
+}
+
+func (w *InfluxWriter) StoreINA219(topic string, payload mqtt.INA219Payload) error {
+	ctx, cancel := context.WithTimeout(context.Background(), writeTimeout)
+	defer cancel()
+
+	point := influxdb2.NewPoint(
+		"ina219",
+		map[string]string{"topic": topic},
+		map[string]interface{}{
+			"bus_voltage_v":    payload.BusVoltageV,
+			"shunt_voltage_mv": payload.ShuntVoltageMv,
+			"load_voltage_v":   payload.LoadVoltageV,
+			"current_ma":       payload.CurrentMa,
+		},
 		time.Now(),
 	)
 

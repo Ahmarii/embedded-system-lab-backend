@@ -1,6 +1,7 @@
 package mqtt
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -12,22 +13,32 @@ import (
 )
 
 const (
-	defaultBrokerURL = "tcp://localhost:1883"
-	defaultTopic     = "esp32/temperature"
-	connectTimeout   = 10 * time.Second
+	defaultBrokerURL   = "tcp://localhost:1883"
+	defaultTopic       = "esp32/temperature"
+	defaultINA219Topic = "esp32/ina219"
+	connectTimeout     = 10 * time.Second
 )
 
 type Subscriber struct {
 	client mqtt.Client
 }
 
-type TemperatureStore interface {
-	StoreTemperature(topic string, value float64) error
+type INA219Payload struct {
+	BusVoltageV    float64 `json:"bus_voltage_v"`
+	ShuntVoltageMv float64 `json:"shunt_voltage_mv"`
+	LoadVoltageV   float64 `json:"load_voltage_v"`
+	CurrentMa      float64 `json:"current_ma"`
 }
 
-func NewTemperatureSubscriber(store TemperatureStore) (*Subscriber, error) {
+type TelemetryStore interface {
+	StoreTemperature(topic string, value float64) error
+	StoreINA219(topic string, payload INA219Payload) error
+}
+
+func NewTemperatureSubscriber(store TelemetryStore) (*Subscriber, error) {
 	brokerURL := getEnv("MQTT_BROKER_URL", defaultBrokerURL)
-	topic := getEnv("MQTT_TOPIC", defaultTopic)
+	temperatureTopic := getEnv("MQTT_TOPIC", defaultTopic)
+	ina219Topic := getEnv("MQTT_INA219_TOPIC", defaultINA219Topic)
 	clientID := getEnv("MQTT_CLIENT_ID", fmt.Sprintf("embedded-lab-api-%d", time.Now().UnixNano()))
 
 	options := mqtt.NewClientOptions().
@@ -38,7 +49,7 @@ func NewTemperatureSubscriber(store TemperatureStore) (*Subscriber, error) {
 		SetConnectRetryInterval(5 * time.Second)
 
 	options.OnConnect = func(client mqtt.Client) {
-		token := client.Subscribe(topic, 0, func(_ mqtt.Client, msg mqtt.Message) {
+		token := client.Subscribe(temperatureTopic, 0, func(_ mqtt.Client, msg mqtt.Message) {
 			payload := strings.TrimSpace(string(msg.Payload()))
 			temperature, err := strconv.ParseFloat(payload, 64)
 			if err != nil {
@@ -55,11 +66,42 @@ func NewTemperatureSubscriber(store TemperatureStore) (*Subscriber, error) {
 		})
 
 		if token.WaitTimeout(connectTimeout) && token.Error() != nil {
-			log.Printf("mqtt subscribe failed for topic %s: %v", topic, token.Error())
+			log.Printf("mqtt subscribe failed for topic %s: %v", temperatureTopic, token.Error())
 			return
 		}
 
-		log.Printf("mqtt subscribed to topic %s", topic)
+		log.Printf("mqtt subscribed to topic %s", temperatureTopic)
+
+		token = client.Subscribe(ina219Topic, 0, func(_ mqtt.Client, msg mqtt.Message) {
+			payload := strings.TrimSpace(string(msg.Payload()))
+
+			var ina219Payload INA219Payload
+			if err := json.Unmarshal([]byte(payload), &ina219Payload); err != nil {
+				log.Printf("mqtt ina219 parse failed for topic %s: payload=%q err=%v", msg.Topic(), payload, err)
+				return
+			}
+
+			if err := store.StoreINA219(msg.Topic(), ina219Payload); err != nil {
+				log.Printf("influxdb ina219 write failed for topic %s payload=%q err=%v", msg.Topic(), payload, err)
+				return
+			}
+
+			log.Printf(
+				"mqtt ina219 received: topic=%s bus_voltage_v=%f shunt_voltage_mv=%f load_voltage_v=%f current_ma=%f",
+				msg.Topic(),
+				ina219Payload.BusVoltageV,
+				ina219Payload.ShuntVoltageMv,
+				ina219Payload.LoadVoltageV,
+				ina219Payload.CurrentMa,
+			)
+		})
+
+		if token.WaitTimeout(connectTimeout) && token.Error() != nil {
+			log.Printf("mqtt subscribe failed for topic %s: %v", ina219Topic, token.Error())
+			return
+		}
+
+		log.Printf("mqtt subscribed to topic %s", ina219Topic)
 	}
 
 	options.SetConnectionLostHandler(func(_ mqtt.Client, err error) {
