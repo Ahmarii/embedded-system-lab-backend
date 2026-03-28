@@ -15,8 +15,8 @@ type TransactionHandler struct {
 }
 
 type createTransactionRequest struct {
-	UserID string `json:"user_id"`
-	Type   string `json:"type"`
+	RFID string `json:"rfid"`
+	Type string `json:"type"`
 }
 
 func NewTransactionHandler(transactionRepo *repositories.TransactionRepository, userRepo *repositories.UserRepository) *TransactionHandler {
@@ -26,7 +26,7 @@ func NewTransactionHandler(transactionRepo *repositories.TransactionRepository, 
 	}
 }
 
-func (h *TransactionHandler) CreateTransaction(c fiber.Ctx) error {
+func (h *TransactionHandler) CreateTransactionByUserRFID(c fiber.Ctx) error {
 	var req createTransactionRequest
 	if err := c.Bind().Body(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -34,17 +34,10 @@ func (h *TransactionHandler) CreateTransaction(c fiber.Ctx) error {
 		})
 	}
 
-	req.UserID = strings.TrimSpace(req.UserID)
-	if req.UserID == "" {
+	req.RFID = strings.TrimSpace(req.RFID)
+	if req.RFID == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "user_id is required",
-		})
-	}
-
-	userID, err := repositories.ParseUserID(req.UserID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "invalid user_id",
+			"message": "rfid is required",
 		})
 	}
 
@@ -61,7 +54,7 @@ func (h *TransactionHandler) CreateTransaction(c fiber.Ctx) error {
 		})
 	}
 
-	user, err := h.userRepo.GetByID(userID)
+	user, err := h.userRepo.GetByRFID(req.RFID)
 	if err == repositories.ErrUserNotFound {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"message": "user not found",
